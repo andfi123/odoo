@@ -2253,6 +2253,30 @@ QUnit.module("Views", (hooks) => {
         }
     );
 
+    QUnit.test(
+        "readonly field label does not reference a missing element", async function (assert) {
+        await makeView({
+            type: "form",
+            resModel: "partner",
+            serverData,
+            arch: `
+                <form>
+                    <group>
+                        <label for="foo"/>
+                        <field name="foo" readonly="1"/>
+                    </group>
+                </form>`,
+            resId: 2,
+        });
+
+        const label = target.querySelector("label.o_form_label");
+        const labelFor = label.getAttribute("for");
+
+        assert.ok(
+            !labelFor || target.querySelector(`#${labelFor}`),
+            "the label should not reference a non-existent element");
+    });
+
     QUnit.test("label uses the string attribute when present", async function (assert) {
         await makeView({
             type: "form",
