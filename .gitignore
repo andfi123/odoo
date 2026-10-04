@@ -50,3 +50,8 @@ package.json
 /man/
 /share/
 /src/
+
+#ignore these files 
+venv/
+odoo/odoo.conf
+odoo/tutorials/
