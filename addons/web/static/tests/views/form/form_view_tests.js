@@ -2306,7 +2306,34 @@ QUnit.module("Views", (hooks) => {
         );
     });
 
+    QUnit.test(
+    "field label in readonly form mode does not reference a missing control", async function (assert) {
+        await makeView({
+            type: "form",
+            resModel: "partner",
+            serverData,
+            arch: `
+                <form>
+                    <group>
+                        <label for="foo"/>
+                        <field name="foo"/>
+                    </group>
+                </form>`,
+            resId: 2,
+            mode: "readonly",
+        });
 
+        const label = target.querySelector("label.o_form_label");
+        const field = target.querySelector(".o_field_widget[name=foo]");
+
+        assert.ok(label, "the label exists");
+        assert.ok(field.querySelector("span"), "the field renders as readonly text");
+
+        assert.ok(
+            !label.hasAttribute("for") || Boolean(label.control),
+            "the label must not reference a missing or non-labelable control"
+        );
+    });
     QUnit.test("label uses the string attribute when present", async function (assert) {
         await makeView({
             type: "form",

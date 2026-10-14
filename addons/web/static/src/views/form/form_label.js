@@ -9,15 +9,16 @@ import { Component } from "@odoo/owl";
 export class FormLabel extends Component {
 
     get labelFor() {
-    const { readonly } = fieldVisualFeedback(
-        this.props.fieldInfo.field,
-        this.props.record,
-        this.props.fieldName,
-        this.props.fieldInfo
-    );
+        const { readonly } = fieldVisualFeedback(
+            this.props.fieldInfo.field,
+            this.props.record,
+            this.props.fieldName,
+            this.props.fieldInfo
+        );
         const isBoolean = this.props.record.fields[this.props.fieldName].type === "boolean";
+        const isReadonly = readonly || !this.props.record.isInEdition;
 
-        return readonly && !isBoolean ? undefined : this.props.id;
+        return isReadonly && !isBoolean ? undefined : this.props.id;
     }
     get className() {
         const { invalid, empty, readonly } = fieldVisualFeedback(
