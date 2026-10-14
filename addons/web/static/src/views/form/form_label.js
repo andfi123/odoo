@@ -7,6 +7,18 @@ import { _t } from "@web/core/l10n/translation";
 import { Component } from "@odoo/owl";
 
 export class FormLabel extends Component {
+
+    get labelFor() {
+    const { readonly } = fieldVisualFeedback(
+        this.props.fieldInfo.field,
+        this.props.record,
+        this.props.fieldName,
+        this.props.fieldInfo
+    );
+        const isBoolean = this.props.record.fields[this.props.fieldName].type === "boolean";
+
+        return readonly && !isBoolean ? undefined : this.props.id;
+    }
     get className() {
         const { invalid, empty, readonly } = fieldVisualFeedback(
             this.props.fieldInfo.field,

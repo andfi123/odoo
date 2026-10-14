@@ -2277,6 +2277,36 @@ QUnit.module("Views", (hooks) => {
             "the label should not reference a non-existent element");
     });
 
+    QUnit.test(
+        "readonly boolean field label remains associated with checkbox", async function (assert) {
+        await makeView({
+            type: "form",
+            resModel: "partner",
+            serverData,
+            arch: `
+                <form>
+                    <group>
+                        <label for="bar"/>
+                        <field name="bar" readonly="1"/>
+                    </group>
+                </form>`,
+            resId: 2,
+        });
+
+        const label = target.querySelector("label.o_form_label");
+        const checkbox = target.querySelector('input[type="checkbox"]');
+
+        assert.ok(label, "the outer label exists");
+        assert.ok(checkbox, "the checkbox exists");
+
+        assert.strictEqual(
+            label.control,
+            checkbox,
+            "the outer label should be associated with the checkbox"
+        );
+    });
+
+
     QUnit.test("label uses the string attribute when present", async function (assert) {
         await makeView({
             type: "form",
