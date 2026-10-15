@@ -19,19 +19,38 @@ export class FormLabel extends Component {
         this.labelRef = useRef("formLabel");
 
         this.state = useState({
-            labelFor: undefined,
+            labelFor: this.props.id,
         });
 
         let pendingFrame = null;
 
         const inspect = () => {
             const label = this.labelRef.el;
+
+            console.warn("FormLabel DEBUG:", {
+                field: this.props.fieldName,
+                id: this.props.id,
+                connected: label?.isConnected,
+                insideModal: Boolean(label?.closest(".modal")),
+                insideForm: Boolean(label?.closest(".o_form_renderer")),
+            });
+
             if (!label?.isConnected) {
                 return;
             }
 
             const form = label.closest(".o_form_renderer");
             const target = form?.querySelector(`#${CSS.escape(this.props.id)}`);
+
+            if (label.closest(".modal")) {
+                console.log("Popup FormLabel inspection:", {
+                    field: this.props.fieldName,
+                    id: this.props.id,
+                    formFound: Boolean(form),
+                    scopedTarget: target?.tagName || "NOT FOUND",
+                    globalTarget: label.ownerDocument.getElementById(this.props.id)?.tagName || "NOT FOUND",
+                });
+            }
 
             const isLabelable = Boolean(
                 target?.matches(

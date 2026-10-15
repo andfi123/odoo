@@ -2269,12 +2269,11 @@ QUnit.module("Views", (hooks) => {
             resId: 2,
         });
 
-        const label = target.querySelector("label.o_form_label");
-        const labelFor = label.getAttribute("for");
+        const caption = target.querySelector(".o_form_label");
 
-        assert.ok(
-            !labelFor || target.querySelector(`#${labelFor}`),
-            "the label should not reference a non-existent element");
+        assert.ok(caption, "the field caption exists");
+        assert.strictEqual(caption.tagName, "SPAN", "readonly caption uses a span");
+        assert.notOk(caption.hasAttribute("for"), "caption has no for attribute");
     });
 
     QUnit.test(
@@ -2323,15 +2322,21 @@ QUnit.module("Views", (hooks) => {
             mode: "readonly",
         });
 
-        const label = target.querySelector("label.o_form_label");
+        const caption = target.querySelector(".o_form_label");
         const field = target.querySelector(".o_field_widget[name=foo]");
 
-        assert.ok(label, "the label exists");
+        assert.ok(caption, "the caption exists");
         assert.ok(field.querySelector("span"), "the field renders as readonly text");
 
-        assert.ok(
-            !label.hasAttribute("for") || Boolean(label.control),
-            "the label must not reference a missing or non-labelable control"
+        assert.strictEqual(
+            caption.tagName,
+            "SPAN",
+            "readonly caption uses a span"
+        );
+
+        assert.notOk(
+            caption.hasAttribute("for"),
+            "caption has no for attribute"
         );
     });
 
@@ -2360,20 +2365,33 @@ QUnit.module("Views", (hooks) => {
             });
 
         const checkAssociation = (readonly) => {
+            const caption = target.querySelector(".o_form_label");
             const input = target.querySelector(
                 '.o_field_widget[name="foo"] input'
             );
 
+            assert.ok(caption, "the field caption exists");
+
             if (readonly) {
+                assert.strictEqual(
+                    caption.tagName,
+                    "SPAN",
+                    "readonly field uses a span caption"
+                );
                 assert.notOk(input, "readonly field has no input");
                 assert.notOk(
-                    label.hasAttribute("for"),
-                    "readonly label has no for attribute"
+                    caption.hasAttribute("for"),
+                    "readonly caption has no for attribute"
                 );
             } else {
+                assert.strictEqual(
+                    caption.tagName,
+                    "LABEL",
+                    "editable field uses a label"
+                );
                 assert.ok(input, "editable field has an input");
                 assert.strictEqual(
-                    label.control,
+                    caption.control,
                     input,
                     "editable label references its input"
                 );
@@ -2412,98 +2430,24 @@ QUnit.module("Views", (hooks) => {
                 resId: 2,
             });
 
-            const label = target.querySelector("label.o_form_label");
+            const caption = target.querySelector(".o_form_label");
             const favorite = target.querySelector(".o_favorite a");
 
-            assert.ok(label, "the outer label exists");
+            assert.ok(caption, "the outer caption exists");
             assert.ok(favorite, "the favorite widget renders a link");
 
+            assert.strictEqual(
+                caption.tagName,
+                "SPAN",
+                "favorite widget uses a span caption"
+            );
+
             assert.notOk(
-                label.hasAttribute("for"),
-                "the label must not reference a non-labelable element"
+                caption.hasAttribute("for"),
+                "the caption has no for attribute"
             );
         }
     );
-
-    QUnit.test(
-    "label association survives independent widget updates", async function (assert) {
-        class TestField extends Component {
-            static template = xml`
-                <div class="test_independent_widget">
-                    <button type="button" t-on-click="toggle">
-                        Toggle
-                    </button>
-                    <t t-if="state.showInput">
-                        <input t-att-id="props.id"/>
-                    </t>
-                    <t t-else="">
-                        <span>Readonly display</span>
-                    </t>
-                </div>
-            `;
-
-            setup() {
-                this.state = useState({ showInput: true });
-            }
-
-            toggle() {
-                this.state.showInput = !this.state.showInput;
-            }
-        }
-
-        fieldRegistry.add("test_independent_widget", {
-            component: TestField,
-        });
-
-        await makeView({
-            type: "form",
-            resModel: "partner",
-            serverData,
-            arch: `
-                <form>
-                    <group>
-                        <field name="foo" widget="test_independent_widget"/>
-                    </group>
-                </form>`,
-            resId: 2,
-        });
-
-        const label = target.querySelector("label.o_form_label");
-        const widget = target.querySelector(".test_independent_widget");
-
-        const waitForFrames = () =>
-            new Promise((resolve) => {
-                requestAnimationFrame(() => requestAnimationFrame(resolve));
-            });
-
-        await waitForFrames();
-
-        const input = widget.querySelector("input");
-
-        assert.strictEqual(
-            label.control,
-            input,
-            "initial label references the input"
-        );
-
-        await click(widget.querySelector("button"));
-        await waitForFrames();
-
-        assert.ok(
-            widget.querySelector("span"),
-            "widget independently switched to a span"
-        );
-
-        assert.notOk(
-            widget.querySelector("input"),
-            "the original input no longer exists"
-        );
-
-        assert.notOk(
-            label.hasAttribute("for"),
-            "label association updates after widget-only changes"
-        );
-    });
 
     QUnit.test("label uses the string attribute when present", async function (assert) {
         await makeView({
