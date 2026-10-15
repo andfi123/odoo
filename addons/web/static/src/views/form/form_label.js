@@ -4,22 +4,69 @@ import { fieldVisualFeedback } from "@web/views/fields/field";
 import { session } from "@web/session";
 import { getTooltipInfo } from "@web/views/fields/field_tooltip";
 import { _t } from "@web/core/l10n/translation";
-import { Component } from "@odoo/owl";
+import {
+    Component,
+    onMounted,
+    onPatched,
+    onWillUnmount,
+    useRef,
+    useState,
+} from "@odoo/owl";
 
 export class FormLabel extends Component {
 
-    get labelFor() {
-        const { readonly } = fieldVisualFeedback(
-            this.props.fieldInfo.field,
-            this.props.record,
-            this.props.fieldName,
-            this.props.fieldInfo
-        );
-        const isBoolean = this.props.record.fields[this.props.fieldName].type === "boolean";
-        const isReadonly = readonly || !this.props.record.isInEdition;
+    setup() {
+        this.labelRef = useRef("formLabel");
 
-        return isReadonly && !isBoolean ? undefined : this.props.id;
+        this.state = useState({
+            labelFor: undefined,
+        });
+
+        let pendingFrame = null;
+
+        const inspect = () => {
+            const label = this.labelRef.el;
+            if (!label?.isConnected) {
+                return;
+            }
+
+            const form = label.closest(".o_form_renderer");
+            const target = form?.querySelector(`#${CSS.escape(this.props.id)}`);
+
+            const isLabelable = Boolean(
+                target?.matches(
+                    "button, input:not([type='hidden']), meter, output, progress, select, textarea"
+                )
+            );
+
+            const nextLabelFor = isLabelable ? this.props.id : undefined;
+
+            if (this.state.labelFor !== nextLabelFor) {
+                this.state.labelFor = nextLabelFor;
+            }
+        };
+
+        onMounted(() => inspect());
+
+        onPatched(() => {
+            if (pendingFrame !== null) {
+                cancelAnimationFrame(pendingFrame);
+            }
+
+            pendingFrame = requestAnimationFrame(() => {
+                pendingFrame = null;
+                inspect();
+            });
+        });
+
+        onWillUnmount(() => {
+            if (pendingFrame !== null) {
+                cancelAnimationFrame(pendingFrame);
+                pendingFrame = null;
+            }
+        });
     }
+
     get className() {
         const { invalid, empty, readonly } = fieldVisualFeedback(
             this.props.fieldInfo.field,

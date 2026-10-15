@@ -2334,6 +2334,177 @@ QUnit.module("Views", (hooks) => {
             "the label must not reference a missing or non-labelable control"
         );
     });
+
+    QUnit.test(
+    "field label association updates when readonly changes", async function (assert) {
+        await makeView({
+            type: "form",
+            resModel: "partner",
+            serverData,
+            arch: `
+                <form>
+                    <group>
+                        <label for="foo"/>
+                        <field name="foo" readonly="bar"/>
+                        <field name="bar"/>
+                    </group>
+                </form>`,
+            resId: 1,
+        });
+
+        const label = target.querySelector("label.o_form_label");
+
+        const waitForFrame = () =>
+            new Promise((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(resolve));
+            });
+
+        const checkAssociation = (readonly) => {
+            const input = target.querySelector(
+                '.o_field_widget[name="foo"] input'
+            );
+
+            if (readonly) {
+                assert.notOk(input, "readonly field has no input");
+                assert.notOk(
+                    label.hasAttribute("for"),
+                    "readonly label has no for attribute"
+                );
+            } else {
+                assert.ok(input, "editable field has an input");
+                assert.strictEqual(
+                    label.control,
+                    input,
+                    "editable label references its input"
+                );
+            }
+        };
+
+        await waitForFrame();
+        checkAssociation(true);
+
+        await click(target.querySelector(".o_field_boolean input"));
+        await waitForFrame();
+        checkAssociation(false);
+
+        await click(target.querySelector(".o_field_boolean input"));
+        await waitForFrame();
+        checkAssociation(true);
+
+        await click(target.querySelector(".o_field_boolean input"));
+        await waitForFrame();
+        checkAssociation(false);
+    });
+
+    QUnit.test(
+        "boolean favorite widget has no invalid label association", async function (assert) {
+            await makeView({
+                type: "form",
+                resModel: "partner",
+                serverData,
+                arch: `
+                    <form>
+                        <group>
+                            <label for="bar"/>
+                            <field name="bar" widget="boolean_favorite" readonly="1"/>
+                        </group>
+                    </form>`,
+                resId: 2,
+            });
+
+            const label = target.querySelector("label.o_form_label");
+            const favorite = target.querySelector(".o_favorite a");
+
+            assert.ok(label, "the outer label exists");
+            assert.ok(favorite, "the favorite widget renders a link");
+
+            assert.notOk(
+                label.hasAttribute("for"),
+                "the label must not reference a non-labelable element"
+            );
+        }
+    );
+
+    QUnit.test(
+    "label association survives independent widget updates", async function (assert) {
+        class TestField extends Component {
+            static template = xml`
+                <div class="test_independent_widget">
+                    <button type="button" t-on-click="toggle">
+                        Toggle
+                    </button>
+                    <t t-if="state.showInput">
+                        <input t-att-id="props.id"/>
+                    </t>
+                    <t t-else="">
+                        <span>Readonly display</span>
+                    </t>
+                </div>
+            `;
+
+            setup() {
+                this.state = useState({ showInput: true });
+            }
+
+            toggle() {
+                this.state.showInput = !this.state.showInput;
+            }
+        }
+
+        fieldRegistry.add("test_independent_widget", {
+            component: TestField,
+        });
+
+        await makeView({
+            type: "form",
+            resModel: "partner",
+            serverData,
+            arch: `
+                <form>
+                    <group>
+                        <field name="foo" widget="test_independent_widget"/>
+                    </group>
+                </form>`,
+            resId: 2,
+        });
+
+        const label = target.querySelector("label.o_form_label");
+        const widget = target.querySelector(".test_independent_widget");
+
+        const waitForFrames = () =>
+            new Promise((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(resolve));
+            });
+
+        await waitForFrames();
+
+        const input = widget.querySelector("input");
+
+        assert.strictEqual(
+            label.control,
+            input,
+            "initial label references the input"
+        );
+
+        await click(widget.querySelector("button"));
+        await waitForFrames();
+
+        assert.ok(
+            widget.querySelector("span"),
+            "widget independently switched to a span"
+        );
+
+        assert.notOk(
+            widget.querySelector("input"),
+            "the original input no longer exists"
+        );
+
+        assert.notOk(
+            label.hasAttribute("for"),
+            "label association updates after widget-only changes"
+        );
+    });
+
     QUnit.test("label uses the string attribute when present", async function (assert) {
         await makeView({
             type: "form",
